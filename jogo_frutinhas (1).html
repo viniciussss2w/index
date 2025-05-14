@@ -1,0 +1,234 @@
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jogo das Frutinhas</title>
+  <style>
+    body {
+      margin: 0;
+      background: linear-gradient(135deg, #1e3c72, #2a5298);
+      font-family: 'Arial', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      color: white;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    #painel {
+      margin-bottom: 15px;
+    }
+
+    canvas {
+      border: 3px solid white;
+      image-rendering: pixelated;
+      background-color: #111;
+    }
+
+    #btnStart {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin-bottom: 20px;
+      background-color: #4CAF50;
+      border: none;
+      color: white;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+
+    #btnStart:hover {
+      background-color: #45a049;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      margin-top: 10px;
+    }
+
+    .controls button {
+      padding: 10px;
+      font-size: 20px;
+      background-color: rgba(255, 255, 255, 0.8);
+      border: none;
+      border-radius: 5px;
+      margin: 5px;
+      cursor: pointer;
+    }
+
+    .controls button:active {
+      background-color: rgba(255, 255, 255, 0.6);
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Jogo das Frutinhas</h1>
+  <button id="btnStart">Start Game</button>
+
+  <div id="painel">
+    Pontos: <span id="pontos">0</span> |
+    Nível: <span id="nivel">1</span> |
+    Tempo: <span id="tempo">30</span>s
+  </div>
+
+  <canvas id="gameCanvas"></canvas>
+
+  <div class="controls">
+    <button id="up">↑</button>
+    <div>
+      <button id="left">←</button>
+      <button id="right">→</button>
+    </div>
+    <button id="down">↓</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const pontosSpan = document.getElementById('pontos');
+    const nivelSpan = document.getElementById('nivel');
+    const tempoSpan = document.getElementById('tempo');
+    const btnStart = document.getElementById('btnStart');
+    const upBtn = document.getElementById('up');
+    const downBtn = document.getElementById('down');
+    const leftBtn = document.getElementById('left');
+    const rightBtn = document.getElementById('right');
+
+    const tamanho = 20;
+    const tempoInicial = 30;
+    const tempoExtraPorFruta = 3;
+
+    let jogador, frutas, pontos, nivel, velocidade, intervaloJogo, tempo, intervaloTempo, jogoAtivo = false;
+
+    // Ajustar o tamanho do canvas para ser responsivo
+    function ajustarCanvas() {
+      canvas.width = window.innerWidth - 40;
+      canvas.height = window.innerHeight - 200;
+    }
+
+    function resetarJogo() {
+      jogador = { x: 0, y: 0, cor: 'blue' };
+      frutas = gerarFrutas(3);
+      pontos = 0;
+      nivel = 1;
+      velocidade = 200;
+      tempo = tempoInicial;
+      atualizarPainel();
+    }
+
+    function iniciarJogo() {
+      resetarJogo();
+      jogoAtivo = true;
+      intervaloJogo = setInterval(desenharJogo, velocidade);
+      intervaloTempo = setInterval(contarTempo, 1000);
+    }
+
+    function pararJogo() {
+      clearInterval(intervaloJogo);
+      clearInterval(intervaloTempo);
+      jogoAtivo = false;
+      alert('Tempo esgotado! Fim de jogo.');
+    }
+
+    function desenharJogo() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      frutas.forEach(item => desenharPixel(item));
+      desenharPixel(jogador);
+      verificarColisoes();
+    }
+
+    function desenharPixel(obj) {
+      ctx.fillStyle = obj.cor;
+      ctx.fillRect(obj.x, obj.y, tamanho, tamanho);
+    }
+
+    function moverJogador(tecla) {
+      if (!jogoAtivo) return;
+
+      if (tecla === 'ArrowRight' || tecla === 'right') jogador.x += tamanho;
+      if (tecla === 'ArrowLeft' || tecla === 'left') jogador.x -= tamanho;
+      if (tecla === 'ArrowUp' || tecla === 'up') jogador.y -= tamanho;
+      if (tecla === 'ArrowDown' || tecla === 'down') jogador.y += tamanho;
+
+      jogador.x = Math.max(0, Math.min(canvas.width - tamanho, jogador.x));
+      jogador.y = Math.max(0, Math.min(canvas.height - tamanho, jogador.y));
+    }
+
+    function verificarColisoes() {
+      for (let i = frutas.length - 1; i >= 0; i--) {
+        if (jogador.x === frutas[i].x && jogador.y === frutas[i].y) {
+          frutas.splice(i, 1);
+          pontos++;
+          tempo += tempoExtraPorFruta;
+          atualizarPainel();
+
+          if (pontos % 3 === 0) {
+            nivel++;
+            velocidade = Math.max(50, velocidade - 20);
+            clearInterval(intervaloJogo);
+            intervaloJogo = setInterval(desenharJogo, velocidade);
+            frutas = frutas.concat(gerarFrutas(3));
+          }
+        }
+      }
+    }
+
+    function gerarFrutas(qtd) {
+      const novas = [];
+      for (let i = 0; i < qtd; i++) {
+        novas.push({
+          x: Math.floor(Math.random() * (canvas.width / tamanho)) * tamanho,
+          y: Math.floor(Math.random() * (canvas.height / tamanho)) * tamanho,
+          cor: 'red'
+        });
+      }
+      return novas;
+    }
+
+    function contarTempo() {
+      if (!jogoAtivo) return;
+      tempo--;
+      tempoSpan.textContent = tempo;
+      if (tempo <= 0) {
+        pararJogo();
+      }
+    }
+
+    function atualizarPainel() {
+      pontosSpan.textContent = pontos;
+      nivelSpan.textContent = nivel;
+      tempoSpan.textContent = tempo;
+    }
+
+    // Eventos de teclado
+    document.addEventListener('keydown', e => moverJogador(e.key));
+
+    // Controles em tela (botões)
+    upBtn.addEventListener('click', () => moverJogador('up'));
+    downBtn.addEventListener('click', () => moverJogador('down'));
+    leftBtn.addEventListener('click', () => moverJogador('left'));
+    rightBtn.addEventListener('click', () => moverJogador('right'));
+
+    // Iniciar o jogo
+    btnStart.addEventListener('click', () => {
+      if (!jogoAtivo) iniciarJogo();
+    });
+
+    // Ajustar canvas na mudança de tamanho da tela
+    window.addEventListener('resize', ajustarCanvas);
+
+    // Iniciar o jogo ao carregar a página
+    ajustarCanvas();
+
+  </script>
+
+</body>
+</html>
